@@ -1,2 +1,3 @@
-# mbconv_profiler_TVM
-TVM libraries for runtime profiling on mbconv (inverted bottleneck) layers
+# relay_modules_TVM
+- TVM libraries for building workloads, runtime graph modules of Convolution layers
+- Provides runtime profiling for mbconv (inverted bottleneck) layers
