@@ -9,11 +9,11 @@ class MB_Profiler():
             target='cpu', 
             opt_level=3, 
             tuning_log=None,
-            experiment=20,
+            experiment=1,
             warmup=1, 
             repeat=12):
         
-        assert device in ['firefly', 'snapdragon', 'nx', 'agx', 'nano']
+        assert device in ['firefly', 'snapdragon', 'nano']
         assert target in ['cpu','mali','adreno','cuda','trt']
         assert opt_level in [0,1,2,3]
         assert repeat > warmup
@@ -91,8 +91,6 @@ class MB_Profiler():
     def do_exec(self, config_key: tuple, act='ReLU6'):
         self.build_runtime_module(config_key, act)
         self.profile_execution()
-
-
 
 
     def clear_runtime_module(self, members):

@@ -292,33 +292,11 @@ def get_headconv_linear(config_key, act, block_name):
     return create_workload(Func)
 
 
-def get_relay_sync(output_shape, sync_type, concat_ratio=None):
-    if sync_type == 'add':
-        lhs = relay.var("lhs", relay.TensorType(output_shape, "float32"))
-        rhs = relay.var("rhs", relay.TensorType(output_shape, "float32"))
-        lhs_shape = rhs_shape = output_shape
-        mod = relay.add(lhs, rhs)
-        sync_module = build_module(mod, [lhs,rhs])
-    elif sync_type == 'concat':
-        assert concat_ratio in [0.1, 0.2, 0.3, 0.4, 0.5]
-        lhs_c = int(output_shape[1] * concat_ratio)
-        if lhs_c % 2 != 0:
-            lhs_c += 1
-        rhs_c = output_shape[1] - lhs_c
-        lhs_shape = (output_shape[0],) + (lhs_c,) + output_shape[2:]
-        rhs_shape = (output_shape[0],) + (rhs_c,) + output_shape[2:]
-        lhs = relay.var("lhs", relay.TensorType(lhs_shape, "float32"))
-        rhs = relay.var("rhs", relay.TensorType(rhs_shape, "float32"))
-        mod = relay.concatenate([lhs,rhs], axis=1)
-        sync_module = build_module(mod, [lhs,rhs])
-    return sync_module, lhs_shape, rhs_shape
-
-
 
 ##################################################################################
 ###Run Runtime Modules                                                           #
 ##################################################################################
-def record_execution(module, input_shape, ctx, repeat=310, warmup=10):
+def record_execution(module, input_shape, ctx, repeat=30, warmup=10):
     record = []
     for i in range(repeat):
         data = np.random.uniform(-1, 1, size=input_shape).astype("float32")
@@ -335,7 +313,7 @@ def record_execution(module, input_shape, ctx, repeat=310, warmup=10):
     #return list_to_stat(record)
 
 
-def record_data_transfer_no_numpy(module, input_shape, ctx, repeat=110, warmup=10):
+def record_data_transfer_no_numpy(module, input_shape, ctx, repeat=30, warmup=10):
     h2d_record = []
     d2h_record = []
     for i in range(repeat):
@@ -353,7 +331,7 @@ def record_data_transfer_no_numpy(module, input_shape, ctx, repeat=110, warmup=1
     return list_to_stat(h2d_record), list_to_stat(d2h_record)
 
 
-def record_data_transfer_as_numpy(module, input_shape, ctx, repeat=110, warmup=10):
+def record_data_transfer_as_numpy(module, input_shape, ctx, repeat=30, warmup=10):
     h2d_record = []
     d2h_record = []
     for i in range(repeat):
@@ -371,7 +349,7 @@ def record_data_transfer_as_numpy(module, input_shape, ctx, repeat=110, warmup=1
     return list_to_stat(h2d_record), list_to_stat(d2h_record)
 
 
-def record_relay_sync(sync_module, lhs_shape, rhs_shape, ctx, repeat=110, warmup=10):
+def record_relay_sync(sync_module, lhs_shape, rhs_shape, ctx, repeat=30, warmup=10):
     record = dict()
     record["set"] = []
     record["run"] = []
@@ -398,7 +376,7 @@ def record_relay_sync(sync_module, lhs_shape, rhs_shape, ctx, repeat=110, warmup
     return record
 
     
-def record_numpy_sync(sync_type, lhs_shape, rhs_shape, repeat=110, warmup=10):
+def record_numpy_sync(sync_type, lhs_shape, rhs_shape, repeat=30, warmup=10):
     record = []
     for i in range(repeat):
         lhs = np.random.uniform(-1, 1, size=lhs_shape).astype("float32")
@@ -418,7 +396,6 @@ def record_numpy_sync(sync_type, lhs_shape, rhs_shape, repeat=110, warmup=10):
 
 def list_to_stat(record: list):
     stat = dict()
-    #stat['record'] = record
     stat['mean'] = np.mean(record)
     stat['median'] = np.median(record)
     record.sort()
