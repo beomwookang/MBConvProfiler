@@ -1,9 +1,9 @@
 import tvm
 import numpy as np
-from relay_modules import *
 import os, json
+from relay_modules import *
 
-class MB_Profiler():
+class MBProfiler():
     def __init__(self, 
             device, 
             target='cpu', 

@@ -18,7 +18,7 @@ dtype="float32"
 ##################################################################################
 ###Conv Block in Relay                                                           #
 ##################################################################################
-def Relay_SelectActivation(input_data, act='ReLU6'):
+def RelaySelectActivation(input_data, act='ReLU6'):
     assert act in ['ReLU','ReLU6']
     if act == 'ReLU':
         return relay.nn.relu(input_data)
@@ -26,7 +26,7 @@ def Relay_SelectActivation(input_data, act='ReLU6'):
         return relay.clip(input_data, a_min=0., a_max=6.)
 
 
-def Relay_ConvBnAct(config_key, act='ReLU6', conv_type='stem', input_data=None):
+def RelayConvBnAct(config_key, act='ReLU6', conv_type='stem', input_data=None):
     assert conv_type in ['stem','head']
     if conv_type == 'stem':
         in_s = 224
@@ -44,11 +44,11 @@ def Relay_ConvBnAct(config_key, act='ReLU6', conv_type='stem', input_data=None):
     conv = layers.conv2d(data=input_data, weight=conv_weight, channels=out_c,
                          strides=[s,s],padding=[k//2,k//2],kernel_size=[k,k],name=conv_type+".conv")
     bn = layers.batch_norm_infer(data=conv, name=conv_type+".bn")
-    net = Relay_SelectActivation(bn, act=act)
+    net = RelaySelectActivation(bn, act=act)
     return net
 
 
-def Relay_Linear(last_c, num_class=1000, biase=True, input_data=None):
+def RelayLinear(last_c, num_class=1000, biase=True, input_data=None):
     if input_data==None:
         input_data = relay.var("data", shape=(last_c,))
     linear_weight = relay.var("linear_weight", shape=(num_class, last_c))
@@ -58,23 +58,23 @@ def Relay_Linear(last_c, num_class=1000, biase=True, input_data=None):
     return net
 
 
-def Relay_HeadConv_Linear(headconv_key, act='ReLU6', input_data=None):
+def RelayHeadConv_Linear(headconv_key, act='ReLU6', input_data=None):
     last_c = headconv_key[1]
     if input_data==None:
-        head_conv = Relay_ConvBnAct(headconv_key, act=act, conv_type='head')
+        head_conv = RelayConvBnAct(headconv_key, act=act, conv_type='head')
     else:
-        head_conv = Relay_ConvBnAct(headconv_key, act=act, conv_type='head', input_data=input_data)
+        head_conv = RelayConvBnAct(headconv_key, act=act, conv_type='head', input_data=input_data)
 
     avg = relay.nn.adaptive_avg_pool2d(head_conv, output_size=[1,1])
     flat = relay.nn.batch_flatten(avg)
-    net = Relay_Linear(last_c, input_data=flat)
+    net = RelayLinear(last_c, input_data=flat)
     return net
 
 
 ##################################################################################
 ###MBCOnv Block in Relay                                                         #
 ##################################################################################
-def Relay_MBConvBlock(config_key, block_name, act='ReLU6', input_data=None):
+def RelayMBConvBlock(config_key, block_name, act='ReLU6', input_data=None):
     in_s = config_key[0]
     k = config_key[1]
     s = config_key[2]
@@ -92,7 +92,7 @@ def Relay_MBConvBlock(config_key, block_name, act='ReLU6', input_data=None):
         pw1 = layers.conv2d(data=input_data,weight=pw1_weight,channels=exp_c,
                             strides=[1,1],padding=[0,0],kernel_size=[1,1],name=block_name+".pw1")
         bn1 = layers.batch_norm_infer(data=pw1, name=block_name+".bn1")
-        relu1 = Relay_SelectActivation(bn1, act=act)
+        relu1 = RelaySelectActivation(bn1, act=act)
     else:
         relu1 = input_data
 
@@ -103,7 +103,7 @@ def Relay_MBConvBlock(config_key, block_name, act='ReLU6', input_data=None):
     dw = layers.conv2d(data=relu1,weight=dw_weight,channels=exp_c,groups=exp_c,
                        kernel_size=[k,k],strides=[s,s],padding=[k//2,k//2],name=block_name+".dw")
     bn2 = layers.batch_norm_infer(data=dw, name=block_name+".bn2")
-    relu2 = Relay_SelectActivation(bn2, act=act)
+    relu2 = RelaySelectActivation(bn2, act=act)
 
     #Point-wse2
     pw2 = layers.conv2d(data=relu2,weight=pw2_weight,channels=out_c,
@@ -132,7 +132,7 @@ def inverted_residual_block(input_data, block_name, k, s, in_c, exp_c, out_c, ac
                                 name=block_name + "_pw1")
         bn1 = layers.batch_norm_infer(data=pw1,
                             name=block_name + "_bn1")
-        relu1 = Relay_SelectActivation(bn1, act=act)
+        relu1 = RelaySelectActivation(bn1, act=act)
     else:
         relu1 = input_data
 
@@ -150,7 +150,7 @@ def inverted_residual_block(input_data, block_name, k, s, in_c, exp_c, out_c, ac
                         name=block_name + "_dw")
     bn2 = layers.batch_norm_infer(data=dw,
                         name=block_name + "_bn2")
-    relu2 = Relay_SelectActivation(bn2, act=act)
+    relu2 = RelaySelectActivation(bn2, act=act)
 
     #Point-wise
     pw2 = layers.conv2d(data=relu2,
@@ -274,20 +274,20 @@ def get_mbconvs(config_keys:list, act, block_name):
     count = 0
     for config in config_keys:
         blk=block_name + str(count)
-        net = Relay_MBConvBlock(config, blk, act, net)
+        net = RelayMBConvBlock(config, blk, act, net)
         count += 1
     Func = relay.Function(relay.analysis.free_vars(net), net)
     return create_workload(Func)
 
 
 def get_stemconv(config_key, act, block_name):
-    net = Relay_ConvBnAct(config_key, act, conv_type='stem')
+    net = RelayConvBnAct(config_key, act, conv_type='stem')
     Func = relay.Function(relay.analysis.free_vars(net), net)
     return create_workload(Func)
 
 
 def get_headconv_linear(config_key, act, block_name):
-    net = Relay_HeadConv_Linear(config_key, act)
+    net = RelayHeadConv_Linear(config_key, act)
     Func = relay.Function(relay.analysis.free_vars(net), net)
     return create_workload(Func)
 

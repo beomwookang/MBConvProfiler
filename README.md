@@ -1,4 +1,4 @@
-# relay_modules_TVM
+# MBConvProfiler
 - TVM libraries for building workloads, runtime graph modules of Convolution layers
 - Provides runtime profiling for mbconv (inverted bottleneck) layers on mobile devices
     - currently supported backends: llvm(aarch64), opencl, cuda, tensorRT
@@ -7,9 +7,9 @@
     - TVM 0.8.dev0 or higher (needs GraphExecutor)
     - LLVM 8.0.0
 
-### example
+### Usage Example
 ```
-#mbconv_profile_example.py
+#TVM
 
 from mbconv_profiler import MB_Profiler
 
