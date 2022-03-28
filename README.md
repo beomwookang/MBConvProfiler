@@ -4,8 +4,9 @@
     - currently supported backends: llvm(aarch64), opencl, cuda, tensorRT
 
 ### Environments:
-    - TVM 0.8.dev0 or higher (needs GraphExecutor)
-    - LLVM 8.0.0
+- TVM 0.8.dev0 or higher (needs GraphExecutor)
+- LLVM 8.0.0
+- OpenCL (aarch64)
 
 ### Usage Example
 ```
